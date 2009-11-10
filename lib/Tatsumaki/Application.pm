@@ -11,10 +11,11 @@ use Tatsumaki::Middleware::BlockingFallback;
 
 use overload q(&{}) => sub { shift->psgi_app }, fallback => 1;
 
-has _rules => (is => 'rw', isa => 'ArrayRef');
+has _rules   => (is => 'rw', isa => 'ArrayRef');
 has template => (is => 'rw', isa => 'Text::MicroTemplate::File', lazy_build => 1, handles => [ 'render_file' ]);
 
-has static_path   => (is => 'rw', isa => 'Str', default => 'static');
+has static_path => (is => 'rw', isa => 'Str', default => 'static');
+has services    => (is => 'rw', isa => 'ArrayRef[Tatsumaki::Service]', default => sub { [] });
 
 around BUILDARGS => sub {
     my $orig = shift;
@@ -39,12 +40,13 @@ sub route {
 }
 
 sub dispatch {
-    my($self, $path) = @_;
+    my($self, $req) = @_;
 
+    my $path = $req->path;
     for my $rule (@{$self->_rules}) {
         if ($path =~ $rule->{path}) {
             my $args = [ $1, $2, $3, $4, $5, $6, $7, $8, $9 ];
-            return sub { $rule->{handler}->new(@_, args => $args) };
+            return $rule->{handler}->new(@_, application => $self, request => $req, args => $args);
         }
     }
 
@@ -65,7 +67,7 @@ sub compile_psgi_app {
         my $env = shift;
         my $req = Tatsumaki::Request->new($env);
 
-        my $handler = $self->dispatch($req->path)
+        my $handler = $self->dispatch($req)
             or return [ 404, [ 'Content-Type' => 'text/html' ], [ "404 Not Found" ] ];
 
         # TODO: if you throw exception from nonblocking callback, there seems no way to catch it
@@ -110,6 +112,16 @@ sub template_path {
     }
     $self->template->{include_path};
 }
+
+sub add_service {
+    my($self, $service) = @_;
+    $service->application($self);
+    $service->start;
+    push @{$self->services}, $service;
+}
+
+no Moose;
+__PACKAGE__->meta->make_immutable;
 
 1;
 

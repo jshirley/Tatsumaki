@@ -26,6 +26,8 @@ sub post   { Tatsumaki::Error::HTTP->throw(405) }
 sub put    { Tatsumaki::Error::HTTP->throw(405) }
 sub delete { Tatsumaki::Error::HTTP->throw(405) }
 
+sub prepare { }
+
 my $class_attr = {};
 
 sub is_asynchronous {
@@ -100,6 +102,7 @@ sub run {
         if ($_->isa('Tatsumaki::Error::HTTP')) {
             return [ $_->code, [ 'Content-Type' => 'text/plain' ], [ $_->message ] ];
         } else {
+            $self->log($_);
             return [ 500, [ 'Content-Type' => 'text/plain' ], [ "Internal Server Error" ] ];
         }
     };
@@ -123,11 +126,16 @@ sub run {
                 };
             });
 
-            try { $self->$method(@{$self->args}) }
-            catch { $cv->croak($_) };
+            try {
+                $self->prepare;
+                $self->$method(@{$self->args});
+            } catch {
+                $cv->croak($_);
+            };
         };
     } else {
         my $res = try {
+            $self->prepare;
             $self->$method(@{$self->args});
             $self->flush;
             return $self->response->finalize;
