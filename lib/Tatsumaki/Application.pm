@@ -70,24 +70,7 @@ sub compile_psgi_app {
         my $handler = $self->dispatch($req)
             or return [ 404, [ 'Content-Type' => 'text/html' ], [ "404 Not Found" ] ];
 
-        # TODO: if you throw exception from nonblocking callback, there seems no way to catch it
-        my $res;
-        try {
-            $res = $handler->(
-                application => $self,
-                handler => $handler,
-                request => $req,
-            )->run;
-        } catch {
-            if ($_->isa('Tatsumaki::Error::HTTP')) {
-                $res = [ $_->code, [ 'Content-Type' => 'text/plain' ], [ $_->message ] ];
-            } else {
-                warn $_;
-                $res = [ 500, [ 'Content-Type' => 'text/plain' ], [ "Internal Server Error" ] ];
-            }
-        };
-
-        return $res;
+        my $res = $handler->run;
     };
 
     $app = Plack::Middleware::Static->wrap($app, path => sub { s/^\/static\/// }, root => $self->static_path);
