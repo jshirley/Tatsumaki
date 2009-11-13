@@ -44,6 +44,7 @@ use Tatsumaki::Service::IRC;
 my $svc = Tatsumaki::Service::IRC->new(
     $ENV{IRC_SERVER}, $ENV{IRC_PASSWORD} || '',
 );
+$svc->channels([ '#chc' ]);
 
 my $app = Tatsumaki::Application->new([
     '/_services/irc/chat' => 'IRCHandler',

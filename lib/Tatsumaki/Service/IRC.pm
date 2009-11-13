@@ -1,6 +1,7 @@
 package Tatsumaki::Service::IRC;
 
-use Moose;
+use Any::Moose;
+
 extends 'Tatsumaki::Service';
 
 use constant DEBUG => $ENV{TATSUMAKI_IRC_DEBUG};
@@ -17,7 +18,9 @@ has server   => (is => 'rw', isa => 'Str');
 has port     => (is => 'rw', isa => 'Str', default => 6667);
 has nick     => (is => 'rw', isa => 'Str', default => 'LarryBird' );
 has password => (is => 'rw', isa => 'Str', default => '');
-has channels => (is => 'rw', isa => 'ArrayRef[Str]', default => sub { [ '#chc' ] } );
+has channels => (
+    is => 'rw', isa => 'ArrayRef[Str]', default => sub { [ ] } 
+);
 has irc      => (is => 'rw', isa => 'AnyEvent::IRC::Client', lazy_build => 1);
 
 around BUILDARGS => sub {
@@ -37,7 +40,7 @@ sub _build_irc {
     my $irc = AnyEvent::IRC::Client->new(debug => DEBUG);
     $irc->reg_cb(
         error => sub { warn "ERROR: $_[1] ($_[2])\n"; warn Dumper($_[3])},
-        connect    => sub { my ($con, $err) = @_; warn "Connected: $err"; },
+        connect    => sub { my ($con, $err) = @_; if ( $err ) { warn "Connection error: $err"; } },
         registered => sub { $self->registered(@_); },
         privatemsg => sub {
             $self->handle_message(@_);
@@ -56,10 +59,9 @@ sub _build_irc {
 sub registered {
     my ( $self, $con ) = @_;
 
-    warn "I'm in: $con\n";
-
-    $con->send_srv( JOIN => '#chc' );
-    $con->send_chan( '#chc', "Hello, bitches." );
+    foreach my $channel ( @{ $self->channels } ) {
+        $con->send_srv( JOIN => $channel );
+    }
 }
 
 sub handle_message {
