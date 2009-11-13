@@ -2,7 +2,7 @@ package Tatsumaki;
 
 use strict;
 use 5.008_001;
-our $VERSION = '0.01';
+our $VERSION = '0.1001';
 
 1;
 __END__
@@ -13,17 +13,18 @@ __END__
 
 =head1 NAME
 
-Tatsumaki - Non-blocking Web server and framework based on AnyEvent
+Tatsumaki - Non-blocking web framework based on Plack and AnyEvent
 
 =head1 SYNOPSIS
 
+  ### app.psgi
   use Tatsumaki::Error;
   use Tatsumaki::Application;
   use Tatsumaki::HTTPClient;
   use Tatsumaki::Server;
 
   package MainHandler;
-  use base qw(Tatsumaki::Handler);
+  use parent qw(Tatsumaki::Handler);
 
   sub get {
       my $self = shift;
@@ -31,7 +32,7 @@ Tatsumaki - Non-blocking Web server and framework based on AnyEvent
   }
 
   package FeedHandler;
-  use base qw(Tatsumaki::Handler);
+  use parent qw(Tatsumaki::Handler);
   __PACKAGE__->asynchronous(1);
 
   use JSON;
@@ -53,7 +54,7 @@ Tatsumaki - Non-blocking Web server and framework based on AnyEvent
   }
 
   package StreamWriter;
-  use base qw(Tatsumaki::Handler);
+  use parent qw(Tatsumaki::Handler);
   __PACKAGE__->asynchronous(1);
 
   use AnyEvent;
@@ -79,19 +80,21 @@ Tatsumaki - Non-blocking Web server and framework based on AnyEvent
       '/feed/(\w+)' => 'FeedHandler',
       '/' => 'MainHandler',
   ]);
+  return $app;
 
-  if (__FILE__ eq $0) {
-      Tatsumaki::Server->new(port => 9999)->run($app);
-  } else {
-      return $app->psgi_app;
-  }
+And now run it with:
+
+  plackup -s AnyEvent -a app.psgi
 
 =head1 WARNINGS
 
-This is my personal, toy and experimental project. The API will be
-added, updated or removed without any notice until it gets CPAN. As
-long as you're playing with git, keep that in mind, and don't blame me
-if one day your application stops running :)
+This is considered as alpha quality software. Most of the stuff are
+undocumented since it's considered unstable and will likely to
+change. You should sometimes look at the source code or example apps
+in I<eg> directory to see how this thing works.
+
+Feel free to hack on it and ask me if you have questions or
+suggestions at IRC: #plack on irc.perl.org.
 
 =head1 DESCRIPTION
 

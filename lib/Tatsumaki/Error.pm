@@ -1,14 +1,18 @@
 package Tatsumaki::Error;
 use strict;
-use Moose;
-with 'Throwable';
+use Any::Moose;
+
+sub throw {
+    my($class, @rest) = @_;
+    die $class->new(@rest);
+}
 
 package Tatsumaki::Error::ClientDisconnect;
-use Moose;
+use Any::Moose;
 extends 'Tatsumaki::Error';
 
 package Tatsumaki::Error::HTTP;
-use Moose;
+use Any::Moose;
 use HTTP::Status;
 extends 'Tatsumaki::Error';
 

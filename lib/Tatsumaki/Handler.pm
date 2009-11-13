@@ -3,7 +3,7 @@ use strict;
 use AnyEvent;
 use Carp ();
 use Encode ();
-use Moose;
+use Any::Moose;
 use MIME::Base64 ();
 use JSON;
 use Try::Tiny;
@@ -47,7 +47,6 @@ sub multipart_xhr_push {
     if ($_[0]) {
         Carp::croak("asynchronous should be set to do multipart XHR push")
             unless $self->is_asynchronous;
-        $self->response->header('Transfer-Encoding' => 'identity');
         $self->response->content_type('multipart/mixed; boundary="' . $self->mxhr_boundary . '"');
 
         # HACK: Always write a boundary for the next event, so client JS can fire the event immediately
@@ -233,7 +232,7 @@ sub render {
     $self->finish($self->application->render_file($file, { %$args, handler => $self })->as_string);
 }
 
-no Moose;
+no Any::Moose;
 __PACKAGE__->meta->make_immutable;
 
 1;

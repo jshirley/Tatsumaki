@@ -1,6 +1,6 @@
 package Tatsumaki::Application;
 use AnyEvent;
-use Moose;
+use Any::Moose;
 use Tatsumaki::Handler;
 use Tatsumaki::Request;
 use Text::MicroTemplate::File;
@@ -101,6 +101,9 @@ sub _build_template {
     Text::MicroTemplate::File->new(
         include_path => [ 'templates' ],
         use_cache => 0,
+        tag_start => '<%',
+        tag_end   => '%>',
+        line_start => '%',
     );
 }
 
@@ -120,7 +123,7 @@ sub add_service {
     push @{$self->services}, $service;
 }
 
-no Moose;
+no Any::Moose;
 __PACKAGE__->meta->make_immutable;
 
 1;
