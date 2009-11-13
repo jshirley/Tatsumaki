@@ -1,0 +1,71 @@
+<html>
+ <head>
+  <title>Tatsumaki and YUI3 gallery-io-stream</title>
+  <link type="text/css" rel="stylesheet" href="http://yui.yahooapis.com/3.0.0/build/cssfonts/fonts-min.css" />
+  <style type="text/css">
+      body,html { }
+      #stream dt { float: left; width: 45px; clear: both; text-align: right; padding-top: 1em;}
+      #stream dd { float: left; margin-left: 50px; padding-top: 1em; }
+  </style>
+ </head>
+
+ <body class="yui-skin-sam">
+  <div><dl id="stream"></dl></div>
+
+<script type="text/javascript" src="http://j.shirley.im/yui3/build/yui/yui.js"></script>
+<script type="text/javascript">
+(function() {
+YUI({
+    base: "http://j.shirley.im/yui3/build/",
+    logExclude: {
+        attribute: false,
+        dom: false,
+        node: false,
+        event: false,
+        base: false,
+        widget: false,
+        selector: false,
+        io:true
+    },
+    combine: false,
+    //filter: 'debug',
+    patterns: {
+        'gallery-': {
+            base: "http://j.shirley.im/yui3-gallery/build/"
+        }
+    }
+}).use( "json", "node", "base", "gallery-io-stream", function(Y) {
+    var stream_uri = '/chat/twitter/mxhrpoll?session=' + Math.random();
+
+    var stream = new Y.IOStream({
+        uri: stream_uri,
+    });
+
+    var stack = [];
+
+    var output = Y.one('#stream');
+
+    Y.on('stream:packet', 
+        function(body, headers) {
+            try {
+                var data = Y.JSON.parse(body);
+                output.prepend(
+                    "<dt><a href=\"" + data.ident + "\"><img src=\"" + data.avatar + "\" height=\"32\"></a></dt><dd>" + data.html + "</dd>"); 
+                stack.push(data);
+            } catch(e) {
+            }
+        }
+    );
+    stream.start();
+
+    window.setTimeout(
+        function() { 
+            stream.stop(); 
+        }, 60000);
+    });
+
+})();
+</script>
+
+</body>
+</html>
