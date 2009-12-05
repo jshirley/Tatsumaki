@@ -14,6 +14,10 @@ our $BacklogLength = 30; # TODO configurable
 
 my %instances;
 
+sub channels {
+    values %instances;
+}
+
 sub instance {
     my($class, $name) = @_;
     $instances{$name} ||= $class->new(channel => $name);
@@ -90,6 +94,8 @@ sub poll_once {
     $client->{cv}->cb(sub { $cb->($_[0]->recv) });
 
     # reset garbage collection timeout with the long-poll timeout
+    # $timeout = 0 is a valid timeout for interval-polling
+    $timeout = 55 unless defined $timeout;
     $client->{timer} = AE::timer $timeout || 55, 0, sub {
         Scalar::Util::weaken $self;
         warn "Timing out $client_id long-poll" if DEBUG;
@@ -106,6 +112,7 @@ sub poll_once {
 sub poll {
     my($self, $client_id, $cb) = @_;
 
+    # TODO register client info like names and remote host in $client
     my $cv = AE::cv;
     $cv->cb(sub { $cb->($_[0]->recv) });
     my $s = $self->clients->{$client_id} = {

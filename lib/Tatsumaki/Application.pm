@@ -3,7 +3,6 @@ use AnyEvent;
 use Any::Moose;
 use Tatsumaki::Handler;
 use Tatsumaki::Request;
-use Text::MicroTemplate::File;
 use Try::Tiny;
 
 use Plack::Middleware::Static;
@@ -12,10 +11,10 @@ use Tatsumaki::Middleware::BlockingFallback;
 use overload q(&{}) => sub { shift->psgi_app }, fallback => 1;
 
 has _rules   => (is => 'rw', isa => 'ArrayRef');
-has template => (is => 'rw', isa => 'Text::MicroTemplate::File', lazy_build => 1, handles => [ 'render_file' ]);
+has template => (is => 'rw', isa => 'Tatsumaki::Template', lazy_build => 1, handles => [ 'render_file' ]);
 
 has static_path => (is => 'rw', isa => 'Str', default => 'static');
-has services    => (is => 'rw', isa => 'ArrayRef[Tatsumaki::Service]', default => sub { [] });
+has services    => (is => 'rw', isa => 'HashRef', default => sub { +{} });
 
 around BUILDARGS => sub {
     my $orig = shift;
@@ -32,6 +31,13 @@ around BUILDARGS => sub {
         $class->$orig(@_);
     }
 };
+
+sub add_handlers {
+    my $self = shift;
+    while (my($path, $handler) = splice @_, 0, 2) {
+        $self->route($path, $handler);
+    }
+}
 
 sub route {
     my($self, $path, $handler) = @_;
@@ -73,37 +79,69 @@ sub compile_psgi_app {
         my $res = $handler->run;
     };
 
-    $app = Plack::Middleware::Static->wrap($app, path => sub { s/^\/static\/// }, root => $self->static_path);
-    $app = Tatsumaki::Middleware::BlockingFallback->wrap($app);
+    if ($self->static_path) {
+        $app = Plack::Middleware::Static->wrap($app, path => sub { s/^\/static\/// }, root => $self->static_path);
+    }
 
+    $app = Tatsumaki::Middleware::BlockingFallback->wrap($app);
     $app;
 }
 
 sub _build_template {
     my $self = shift;
-    Text::MicroTemplate::File->new(
-        include_path => [ 'templates' ],
-        use_cache => 0,
-        tag_start => '<%',
-        tag_end   => '%>',
-        line_start => '%',
-    );
+    require Tatsumaki::Template::Micro;
+    Tatsumaki::Template::Micro->new;
 }
 
 sub template_path {
     my $self = shift;
     if (@_) {
         my $path = ref $_[0] eq 'ARRAY' ? $_[0] : [ $_[0] ];
-        $self->template->{include_path} = $path;
+        $self->template->include_path($path);
     }
-    $self->template->{include_path};
+    $self->template->include_path;
 }
 
 sub add_service {
-    my($self, $service) = @_;
+    my $self = shift;
+
+    my($name, $service);
+    if (@_ == 2) {
+        ($name, $service) = @_;
+    } else {
+        $service = shift;
+        $name = $self->_service_name_for($service);
+    }
+
     $service->application($self);
     $service->start;
-    push @{$self->services}, $service;
+    $self->services->{$name} = $service;
+}
+
+sub service {
+    my($self, $name) = @_;
+    $self->services->{$name};
+}
+
+sub services {
+    my $self = shift;
+    values %{$self->services};
+}
+
+sub _service_name_for {
+    my($self, $service) = @_;
+
+    my $ref = ref $service;
+    $ref =~ s/^Tatsumaki::Service:://;
+
+    my $name = $ref;
+
+    my $i = 0;
+    while (exists $self->services->{$name}) {
+        $name = $ref . $i++;
+    }
+
+    return $name;
 }
 
 no Any::Moose;
