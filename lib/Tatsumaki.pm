@@ -2,7 +2,7 @@ package Tatsumaki;
 
 use strict;
 use 5.008_001;
-our $VERSION = '0.1003';
+our $VERSION = '0.1005';
 
 1;
 __END__
@@ -138,6 +138,6 @@ it under the same terms as Perl itself.
 
 =head1 SEE ALSO
 
-L<AnyEvent> L<Plack> L<PSGI> L<http://www.tornadoweb.org/>
+L<AnyEvent> L<Plack> L<PSGI>
 
 =cut
