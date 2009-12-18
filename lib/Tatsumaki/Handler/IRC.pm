@@ -1,8 +1,6 @@
 package Tatsumaki::Handler::IRC;
 
-use Moose;
-
-extends 'Tatsumaki::Handler';
+use parent 'Tatsumaki::Handler';
 
 use Tatsumaki::Service::IRC::Message;
 

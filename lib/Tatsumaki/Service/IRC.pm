@@ -49,17 +49,17 @@ sub _build_irc {
         publicmsg => sub {
             $self->handle_message(@_);
         },
-        sent => sub { warn "sent event...@_\n"; },
-        send => sub { warn "Sending...@_\n"; },
+        sent => sub {  },
+        send => sub {  },
         debug_send => sub { warn "debug_send event...@_\n"; },
     );
-
     return $irc;
 }
 
 sub registered {
     my ( $self, $con ) = @_;
 
+    warn "[2] Registered on network";
     foreach my $channel ( @{ $self->channels } ) {
         $con->send_srv( JOIN => $channel );
     }
@@ -78,7 +78,6 @@ sub handle_message {
         to   => $msg->{params}->[0],
         body => $msg->{params}->[1]
     ];
-
     my $env = $req->to_psgi;
 
     $env->{'tatsumaki.irc'} = {
@@ -87,13 +86,13 @@ sub handle_message {
     };
     $env->{'psgi.streaming'} = 1;
     my $res = $self->application->($env);
-
     $res->(sub { my $res = shift }) if ref $res eq 'CODE';
 }
 
 sub start {
     my($self, $application) = @_;
 
+    warn "[0] Connecting to " . $self->server . "\n";
     $self->irc->connect(
         $self->server, $self->port,
         { nick => $self->nick } 
