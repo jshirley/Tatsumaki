@@ -14,6 +14,7 @@ use HTTP::Request::Common;
 use HTTP::Message::PSGI;
 use namespace::clean -except => 'meta';
 
+has post_path => (is => 'rw', isa => 'Str', default => '/_services/irc/chat' );
 has server   => (is => 'rw', isa => 'Str');
 has port     => (is => 'rw', isa => 'Str', default => 6667);
 has nick     => (is => 'rw', isa => 'Str', default => 'LarryBird' );
@@ -72,11 +73,12 @@ sub handle_message {
 
     # TODO refactor this (miyagawa says so)
     # This should probably use Tatsumaki::MessageQueue
-    my $req = POST "/_services/irc/chat", [ 
+    my $req = POST $self->post_path, [ 
         from => $msg->{prefix}, 
         to   => $msg->{params}->[0],
         body => $msg->{params}->[1]
     ];
+
     my $env = $req->to_psgi;
 
     $env->{'tatsumaki.irc'} = {
@@ -84,8 +86,8 @@ sub handle_message {
         message => $msg,
     };
     $env->{'psgi.streaming'} = 1;
-
     my $res = $self->application->($env);
+
     $res->(sub { my $res = shift }) if ref $res eq 'CODE';
 }
 
