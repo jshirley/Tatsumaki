@@ -11,12 +11,13 @@ has arg  => (is => 'rw', isa => 'Str');
 has message => (is => 'ro', isa => 'HashRef');
 
 sub reply {
-    my $self = shift;
-    my($body) = @_;
+    my ($self, $body) = @_;
 
     my $reply = $self->make_reply;
     $reply->body($body);
     $reply->send;
+
+    return $reply;
 }
 
 sub make_reply {
