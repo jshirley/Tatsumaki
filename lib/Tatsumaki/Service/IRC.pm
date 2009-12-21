@@ -39,6 +39,7 @@ use Data::Dumper;
 sub _build_irc {
     my $self = shift;
     my $irc = AnyEvent::IRC::Client->new(debug => DEBUG);
+
     $irc->reg_cb(
         error => sub { warn "ERROR: $_[1] ($_[2])\n"; warn Dumper($_[3])},
         connect    => sub { my ($con, $err) = @_; if ( $err ) { warn "Connection error: $err"; } },
@@ -51,10 +52,30 @@ sub _build_irc {
         },
         sent => sub {  },
         send => sub {  },
-        debug_send => sub { warn "debug_send event...@_\n"; },
+        debug_send => sub { $self->debug_send(@_); },
+
+        channel_add    => sub { $self->channel_add(@_); },
+        channel_remove => sub { $self->channel_remove(@_); },
+        channel_change => sub { $self->channel_change(@_); },
+        channel_nickmode_update => sub { $self->channel_nickmode_update(@_); },
+        
+        join => sub { $self->channel_join(@_) },
+        part => sub { $self->channel_part(@_) },
+
+        nick_change => sub { $self->nick_change(@_) },
     );
     return $irc;
 }
+
+sub debug_send { }
+
+sub channel_add { }
+sub channel_remove { }
+sub channel_chhange { }
+sub channel_nickmode_update { }
+sub channel_join { }
+sub channel_part { }
+sub nick_change { }
 
 sub registered {
     my ( $self, $con ) = @_;
@@ -67,6 +88,7 @@ sub registered {
 
 sub handle_message {
     my ( $self, $con, $from, $msg ) = @_;
+
     unless ( $msg->{command} eq 'PRIVMSG' ) {
         return;
     }
