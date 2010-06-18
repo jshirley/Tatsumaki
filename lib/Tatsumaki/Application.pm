@@ -6,7 +6,6 @@ use Tatsumaki::Request;
 use Try::Tiny;
 
 use Plack::Middleware::Static;
-use Tatsumaki::Middleware::BlockingFallback;
 
 use overload q(&{}) => sub { shift->psgi_app }, fallback => 1;
 
@@ -23,6 +22,7 @@ around BUILDARGS => sub {
         my $handlers = shift @_;
         my @rules;
         while (my($path, $handler) = splice @$handlers, 0, 2) {
+            $path = qr@^/$@    if $path eq '/';
             $path = qr/^$path/ unless ref $path eq 'RegExp';
             push @rules, { path => $path, handler => $handler };
         }
@@ -78,10 +78,9 @@ sub compile_psgi_app {
     };
 
     if ($self->static_path) {
-        $app = Plack::Middleware::Static->wrap($app, path => sub { s/^\/static\/// }, root => $self->static_path);
+        $app = Plack::Middleware::Static->wrap($app, path => sub { s/^\/(?:(favicon\.ico)|static\/)/$1||''/e }, root => $self->static_path);
     }
 
-    $app = Tatsumaki::Middleware::BlockingFallback->wrap($app);
     $app;
 }
 
